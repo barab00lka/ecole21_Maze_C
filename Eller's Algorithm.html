@@ -1,0 +1,364 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+	<title> Eller's Algorithm </title>
+</HEAD>
+<body>
+<h1>Eller's Algorithm</h1>
+	
+	<p>Eller's algorithm creates 'perfect' mazes, having only a single path between any two cells, one row at a time. The algorithm itself is incredibly fast, and far more memory efficient than other popular algorithms (such as Prim's and Kruskal's) requiring storage proportional to only a single row.  This makes it possible to create mazes of indefinite length on systems with limited memory.<p>
+	<p>There is very little written about Eller's Algorithm on the internet. The best source I could find (Walter Pullen's excellent <a href="http://www.astrolog.org/labyrnth/algrithm.htm">Think Labyrinth</a> website) has a single paragraph description which, while very helpful, I found inadequate to implement the algorithm.  Additionally, the algorithm described in <i><a href="http://www.amazon.com/Mathematics-Physics-Programmers-Game-Development/dp/1584503300">Mathematics and Physics for Programmers</a></i> doesn't seem to work.  Needless to say, uncovering information about this very interesting algorithm was frustrating. I was able to work out the missing details, and I'm confident that the algorithm I came up with is indeed Eller's algorithm. This page is intended to (hopefully) alleviate the suffering of future searchers interested in this facinating maze generator.</p>
+	
+	<p><b>Update:</b>At least one new useful page has appeared on the net since I first wrote this.  Check out
+	Jamis Buck's<a href="http://weblog.jamisbuck.org/2010/12/29/maze-generation-eller-s-algorithm">Maze Generation: Eller's Algorithm</a> blog post.  I'll add other useful links as I find them.</p>
+
+	<br>
+
+<h2>The Algorithm</h2>
+
+<blockquote>
+
+	Note: Assume that there all left-most cells have a left-wall and all right-most cells have a right wall.
+
+	<ol type="1">
+		<li>Create the first row. No cells will be members of any set</li>
+		
+		<br/>
+		<li>Join any cells not members of a set to their own unique set</li>
+		
+		<br/>
+		<li>Create right-walls, moving from left to right:</li>
+		<ol type="A">
+			<li>Randomly decide to add a wall or not</li>
+			<ul>
+				<li>If the current cell and the cell to the right are members of the same set, always create a wall between them. (This prevents loops)</li>
+			</ul>
+			<ul>
+				<li>If you decide not to add a wall, union the sets to which the current cell and the cell to the right are members.</li>
+			</ul>
+		</ol>
+
+		<br/>
+		<li>Create bottom-walls, moving from left to right:</li>
+		<ol type="A">
+			<li>Randomly decide to add a wall or not. Make sure that each set has at least one cell without a bottom-wall (This prevents isolations)</li>
+			<ul>
+				<li>If a cell is the only member of its set, do not create a bottom-wall</li>
+				<li>If a cell is the only member of its set without a bottom-wall, do not create a bottom-wall</li>
+			</ul>
+		</ol>
+		
+		<br/>
+		<li>Decide to keep adding rows, or stop and complete the maze</li>
+		<ol type="A">
+			<li>If you decide to add another row:</li>
+			<ol type="a">
+				<li>Output the current row</li>
+				<li>Remove all right walls</li>
+				<li>Remove cells with a bottom-wall from their set</li>
+				<li>Remove all bottom walls</li>
+				<li>Continue from Step 2</li>
+			</ol>
+
+			<br/>
+			<li>If you decide to complete the maze</li>
+			<ol type="a">
+				<li>Add a bottom wall to every cell</li>
+				<li>Moving from left to right:</li>
+				<ul>
+					<li>If the current cell and the cell to the right are members of a different set:</li>
+					<ol type="i">
+						<li>Remove the right wall</li>
+						<li>Union the sets to which the current cell and cell to the right are members.</li>
+						<li>Output the final row</li>
+					</ol>
+				</ul>
+			</ol>
+		</ol>
+	</ol>
+
+</blockquote>
+
+<h2>A Sample Run</h2>
+<blockquote>
+	<p>The example here will create a rectangular maze of indefinite length.  We'll create the maze one row at a time starting at the top row and moving left to right between cells.  Each cell in a row will be assigned to a set.  We'll represent that here by enumerating the sets and writing the number of the set that a cell belongs to inside each cell.  Each cell can have a wall on the right and on the bottom. We'll assume that a wall exists to the left of the leftmost cell and the the right of the rightmost cell in each row and that a wall exists on the top of all cells in the first row. </p>
+<p><b>Step 1:</b> Create the first row</p>
+	<blockquote>
+		<p>This will just be an empty row.</p>
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|                               |
+	</pre>
+	</blockquote>
+		
+<p><b>Step 2:</b>Join any cells not members of a set to their own unique set</p>
+	<blockquote>
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	| 1   2   3   4   5   6   7   8 |
+	</pre>
+	</blockquote>
+
+<p><b>Step 3:</b>Create right walls</p>
+	<blockquote>
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|(1   2)  3   4   5   6   7   8 |
+	</pre>
+
+	<p>If we choose not to add a wall, union the sets</p>
+
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	| 1  (1   3)  4   5   6   7   8 |
+
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	| 1   1  (1 | 4)  5   6   7   8 |
+
+	... snip ...
+
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	| 1   1   1 | 4   4 | 6   6   6 |
+	</pre>
+	</blockquote>
+
+<p><b>Step 4:</b>Create bottom walls.</p>
+
+	<blockquote>
+	<p>Ensure that each set has <i>at least one</i> cell with a down passage (i.e. without a bottom wall). Failure to do so will create an isolation.</p>
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	| 1  <u>_1_</u> <u>_1_</u>| 4  <u>_4_</u>| 6   6  <u>_6_</u>|
+	</pre>
+	</blockquote>
+
+<p><b>Step 5.A:</b> Create a new row.</p>
+	
+	<blockquote>
+	<p>For each cell with a down passage on the previous row, assign the cell below to the same set.</p>
+	<pre>
+
+	Output the current row:
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	| 1  <u>_1_</u> <u>_1_</u>| 4  <u>_4_</u>| 6   6  <u>_6_</u>| &lt;-- Output to something (line printer, etc.)
+	| 1  <u>_1_</u> <u>_1_</u>| 4  <u>_4_</u>| 6   6  <u>_6_</u>| &lt;-- our old row is our current row
+
+	Remove right walls:
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	| 1  <u>_1_</u> <u>_1_</u>| 4  <u>_4_</u>| 6   6  <u>_6_</u>|
+	| 1  <u>_1_</u> <u>_1_</u>  4  <u>_4_</u>  6   6  <u>_6_</u>|
+
+	If a cell has a bottom wall, remove it from its set:
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	| 1  <u>_1_</u> <u>_1_</u>| 4  <u>_4_</u>| 6   6  <u>_6_</u>|
+	| 1  <u>___</u> <u>___</u>  4  <u>___</u>  6   6  <u>___</u>|
+
+	Remove bottom walls:
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	| 1  <u>_1_</u> <u>_1_</u>| 4  <u>_4_</u>| 6   6  <u>_6_</u>|
+	| 1           4       6   6     |
+
+	Continue from Step 2:
+
+	Step 2: Join cells not members of a set to their own unique set
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___| 
+	| 1   2   3   4   5   6   6   7 |
+	
+	Continuing to Step 3: Add Right Walls
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	|(1 | 2)  3   4   5   6   6   7 | &lt;-- added a wall
+	
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	| 1 |(2   3)  4   5   6   6   7 | &lt;-- didn't add a wall, union sets 2 and 3
+
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	| 1 | 2  (2   4)  5   6   6   7 | &lt;-- didn't add a wall, union sets 2 and 4
+
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	| 1 | 2   2  (2 | 5)  6   6   7 | &lt;-- added a wall
+
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	| 1 | 2   2   2 |(5 | 6)  6   7 | &lt;-- added a wall
+	</pre>
+
+	<p>The next two cells are members of the same set, so we MUST add a wall.  Failure to do so will create loops in our maze.</p>
+	
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	| 1 | 2   2   2 | 5 |(6 | 6)  7 | &lt;-- MUST add a wall
+
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	| 1 | 2   2   2 | 5 | 6 |(6   7)| &lt;-- didn't add a wall, union sets 6 and 7
+
+
+	Continuing to Step 4: add bottom walls
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	| 1 | 2   2   2 | 5 | 6 | 6   6 |
+	</pre>
+
+	<p>Remember: at least one cell from each set must have a down-passage (i.e. must not have a bottom wall).</p>
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	| 1 | 2  <u>_2_</u> <u>_2_</u>| 5 |<u>_6_</u>| 6  <u>_6_</u>|
+
+	</pre>
+
+	<p>You can add as many rows as you'd like this way</p>
+
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	|   |    ___ ___|   |___|    ___|
+	|<u>_1_</u>  1 | 3   3 | 7  <u>_7_</u> <u>_7_</u>| 8 |
+	</pre>
+
+	</blockquote>
+
+<p><b>Step 5.B:</b> Complete the maze</p>
+
+	<blockquote>
+		<p>The final row differs from a regular row in just two ways: 1) every cell has a bottom wall and 2) every cell must be a member of the same set.</p>
+		<p>Making each cell part of the same set is simple.  Just remove walls between cells that are members of different sets until all the cells are part of the same set. <i>Do not remove a wall if it separates two cells which are members of the same set.</i></p>
+		<p>Start by creating a normal row and add a bottom wall to each cell</p>
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	|   |    ___ ___|   |___|    ___|
+	|___    |       |    ___ ___|   |
+	|<u>_1_</u> <u>_1_</u>|<u>_3_</u>|<u>_3_</u>|<u>_7_</u> <u>_7_</u>|<u>_8_</u> <u>_8_</u>|
+	</pre>	
+
+	<p>Complete the maze by knocking down walls between cells that are members of different sets and unioning them until all cells are part of the same set.</p>
+	
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	|   |    ___ ___|   |___|    ___|
+	|___    |       |    ___ ___|   |
+	|<u>_1_</u> <u>(1_</u>|<u>_3)</u>|<u>_3_</u>|<u>_7_</u> <u>_7_</u>|<u>_8_</u> <u>_8_</u>|
+	 
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	|   |    ___ ___|   |___|    ___|
+	|_ _    |       |    ___ ___|   |
+	|<u>_1_</u> <u>_1_</u> <u>_1_</u>|<u>(1_</u>|<u>_7)</u> <u>_7_</u>|<u>_8_</u> <u>_8_</u>|
+
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	|   |    ___ ___|   |___|    ___|
+	|___    |       |    ___ ___|   |
+	|<u>_1_</u> <u>_1_</u> <u>_1_</u>|<u>_1_</u> <u>_1_</u> <u>(1_</u>|<u>_8)</u> <u>_8_</u>|
+
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	|   |    ___ ___|   |___|    ___|
+	|___    |       |    ___ ___|   |
+	|<u>_1_</u> <u>_1_</u> <u>_1_</u>|<u>_1_</u> <u>_1_</u> <u>_1_</u> <u>_1_</u> <u>_1_</u>|
+	</pre>
+	
+	<p>You should now have a "perfect maze".  There are no loops (ensuring only a single path exists between any two cells) and no isolations (no cell or group of cells are "blocked off" from the rest of the maze). You can assign any two cells to be the entrance and exit.</p>
+	<pre>
+	 ___ ___ ___ ___ ___ ___ ___ ___
+	|    ___ ___|    ___|        ___|
+	|   |    ___ ___|   |___|    ___|
+	|___    |       |    ___ ___|   |
+	|___ ___ ___|___ ___ ___ ___ ___|
+	</pre>
+	</blockquote>
+
+</blockquote>
+
+<h2>Example mazes</h2>
+<blockquote>
+<p>The following 15 x 15 maze was generated using this algorithm:</p>
+<pre>
+ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __  
+|__   |__       __ __|__   |   __|  |  |  |  |
+|__   |__   |__|   __ __|   __ __      |     |
+|        |  |  |     |  |__      |__|  |  |  |
+|__|__|  |  |   __|   __|__   |   __|__|  |__|
+|   __|  |     |__ __ __|  |  |__|  |     |  |
+|  |  |  |  |__|  |__   |  |   __|__ __|  |  |
+|  |__    __    __ __    __|  |   __   |  |  |
+|  |  |  |  |      __|  |   __|  |  |__|  |  |
+|  |     |     |__   |  |  |  |  |  |__    __|
+|  |  |__|__|__ __|  |     |  |  |      __|  |
+|__ __|  |  |  |__   |__|   __|     |   __ __|
+|   __|  |   __|__      |__   |__|  |__    __|
+|  |  |     |  |     |__|  |   __    __|   __|
+|   __|  |__ __|__|      __|  |  |     |  |  |
+|   __ __   |      __|__|  |__   |  |  |__|  |
+|__ __ __|__ __|__ __ __ __ __|__|__|__ __ __|
+</pre>
+
+<p>You can change the "texture" of your mazes by adding bias to your random number generator so that it becomes more or less likely that you create a right wall than a bottom wall.  For example, you can make a maze with more long horizontal passages by creating right-walls less frequently and bottom-walls more frequently. </p>
+<p>This is really easy to do.  When deciding to add a wall, do something like the following: 1) generate a random number between 1 and 100.  2) if creating a right-wall, check that the resulting number is less than our bias value, if creating a bottom-wall, check than the number is greater than our bias value.  In this case, a bias of 50 will create an even texture, like the sample maze above.</p>
+<p>The following two sample mazes show how adding bias affects the resulting texture of a maze.</p>
+<p> A very vertical maze:</p>
+<pre>
+ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __  
+|  |  |     |  |   __|  |__   |  |  |  |  |  |
+|  |  |__|  |   __|__   |  |  |__   |  |     |
+|  |  |     |  |  |  |  |  |  |   __|__   |  |
+|  |  |  |  |  |  |  |  |     |  |  |  |  |__|
+|  |  |  |  |  |      __|  |  |  |  |     |  |
+|  |  |  |__|__   |  |  |  |     |  |  |__   |
+|  |  |  |  |  |  |  |     |  |  |     |     |
+|  |  |     |     |  |  |  |__|__|  |  |  |__|
+|  |  |  |     |  |  |__|  |  |  |__|  |     |
+|__   |__|__|  |__|__|  |  |     |  |  |__|  |
+|   __   |  |  |  |__      |  |  |  |   __|__|
+|__|  |  |  |  |  |  |  |__ __|  |  |  |__   |
+|  |  |  |  |  |  |  |        |  |  |  |  |  |
+|  |  |  |   __|  |  |__|  |  |  |  |  |     |
+|  |  |     |  |  |  |  |__|  |__   |  |  |  |
+|__ __ __|__ __ __ __ __ __ __|__ __ __ __|__|
+</pre>
+
+<p> A more horizontal maze:</p>
+<pre>
+ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __  
+|  |   __ __ __ __|   __ __ __ __ __ __ __ __|
+|  |   __ __    __ __|   __ __ __ __|   __   |
+|  |   __ __|__    __    __ __ __       __|  |
+|__ __ __ __ __|__ __|__    __   |__|__   |__|
+|   __ __ __|  |  |  |__ __   |__|__ __    __|
+|__ __ __ __ __ __       __ __|__ __ __   |  |
+|__ __ __ __ __ __   |__|__ __ __ __ __ __ __|
+|__ __       __ __ __ __ __    __ __|      __|
+|__   |  |__ __ __|__ __ __ __|__ __   |__ __|
+|  |  |   __ __ __|  |__ __    __|   __|__   |
+|   __ __|__ __ __    __ __ __ __ __   |   __|
+|__ __   |__ __ __ __ __   |   __ __ __|   __|
+|__    __ __ __    __|   __|__ __ __|__ __   |
+|  |__    __ __|__|   __ __ __ __|   __ __ __|
+|__ __ __       __ __|   __|   __ __|   __ __|
+|__ __ __ __|__ __ __ __ __ __ __ __ __ __ __|
+</pre>
+
+</blockquote>
+
+<br /><br /><hr />
+<a href="http://www.neocomputer.org/projects">Home</a> - Last modified: June 2012
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-10068506-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-10068506-1');
+</script>
+<!-- /Google -->
+</body>
+</html>
