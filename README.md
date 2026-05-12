@@ -129,8 +129,9 @@ Implement cave generation using a cellular automaton:
 | `all`       | Build the executable          |
 | `install`   | Install to a chosen directory |
 | `uninstall` | Remove installed files        |
+| `web`       | Build and run webserver application in docker  |
 | `clean`     | Remove build artefacts        |
-| `tests`     | Run unit tests                |
+| `test`     | Run unit tests                |
 
 ---
 ## Part 5. Bonus. ML. Reinforcement learning
