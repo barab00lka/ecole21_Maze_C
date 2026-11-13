@@ -1,4 +1,4 @@
-CC          = gcc
+CC          =
 CFLAGS      = -Wall -Wextra -O2
 DEBUG_CFLAGS = -Wall -Wextra -Werror -g -O0 -DDEBUG=1
 LDFLAGS     =
@@ -35,7 +35,7 @@ WS_DIR = webserver
 WS_SOURCES = $(wildcard $(WS_DIR)/*.c)
 WS_OBJECTS = $(WS_SOURCES:%.c=$(BUILDDIR)/%.o)
 WS_TARGET = $(WS_DIR)/backend.fcgi
-WS_LIBS = $(shell pkg-config --libs fcgi 2>/dev/null || echo "-lfcgi")
+WS_LIBS = $(shell pkg-config --libs fcgi xxhash 2>/dev/null || echo "-lfcgi -lxxhash")
 
 GCOV_INFO_FILE=gcovreport.info
 REPORT_FOLDER=report
@@ -45,7 +45,7 @@ GCOVFLAGS     = --coverage -O0
 
 .PHONY: all clean install uninstall test lib web debug_web format linter valgrind release debug help re gcov_report
 
-all: $(TARGET) lib
+all: $(TARGET) lib $(WS_TARGET)
 	@echo "Build completed successfully"
 
 $(BUILDDIR):
@@ -77,22 +77,30 @@ lib: $(BUILDDIR) $(LIB_OBJECTS)
 	@ar rcs $(LIB_TARGET) $(LIB_OBJECTS)
 	@echo "Built static library: $(LIB_TARGET)"
 
-web: $(WS_TARGET)
+web:
 	@which docker || echo "Docker not found. Docker-CLI is required for webserver"
 	@docker rm -f A1_Maze_C 
 	@docker build --target release -t maze-server-ht ./$(WS_DIR)
-	@docker run --name A1_Maze_C -d -p 8081:81 maze-server-ht && xdg-open http://localhost:8081/
+	@docker run --name A1_Maze_C --restart unless-stopped -d -p 8081:81 maze-server-ht
+
+backend: 
+	@which docker || echo "Docker not found. Docker-CLI is required for webserver"
+	@docker build -t maze-backend-build . && docker run --rm -v `pwd`:/wrksrc maze-backend-build
+	@docker rm -f maze
+	@docker build --target minimal -t maze-backend-slim ./$(WS_DIR)
+	@docker run -it --name maze --restart unless-stopped -d -p 127.0.0.1:8080:8080 maze-backend-slim
+	@echo backend available on localhost:8080
 
 debug_web: debug
 	@which docker || echo "Docker not found. Docker-CLI is required for webserver"
 	@docker rm -f A1_Maze_C
 	@docker build --target debug -t maze-server-ht-debug ./$(WS_DIR)
-	@docker run --name A1_Maze_C -d -p 8081:81 maze-server-ht-debug && xdg-open http://localhost:8081/
+	@docker run --name A1_Maze_C -d -p 8081:81 maze-server-ht-debug
 	@docker logs A1_Maze_C -f
 
 clean:
 	@echo "Cleaning build files..."
-	@rm -rf $(BUILDDIR) $(LIB_TARGET) $(TARGET) $(GCOV_INFO_FILE) $(REPORT_FOLDER)
+	@rm -rf $(BUILDDIR) $(LIB_TARGET) $(TARGET) $(GCOV_INFO_FILE) $(REPORT_FOLDER) $(WS_DIR)/backend.fcgi
 
 $(TEST_TARGET): $(BUILDDIR) $(TEST_OBJECTS) $(LIB_OBJECTS)
 	@$(CC) -o $@ $(TEST_OBJECTS) $(LIB_OBJECTS) $(CHECK_LIBS)

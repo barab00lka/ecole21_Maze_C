@@ -3,31 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <xxhash.h>
+
 #include "ht_sep_chaining.h"
 
-/* hastable implementation with separate chaining (singly linked list) for hash
- * collisions */
-/*
- * хэш функция для хранения словаря уникальных слов в файле:
- * если слово это строка вида w[n],
- * то хеш этого слова будет: ((w[0] * (i + 1) + ... w[n-1] * (i + 1)) / n + 1)
- * % NBUCKETS
- */
-
-int
-hashAscii (const char *str)
-{
-  const size_t len = strlen (str) + 1;
-  long hash = 0;
-  if (str == NULL)
-    return -1;
-  for (size_t i = 0; i < len - 1; ++i)
-    {
-      hash += (int)str[i] * (1 + i);
-      // hash += (int)str[i] / 1+i;
-    }
-  // assert(len), assert(hash);
-  return hash / len;
+// В libsodium буфер должен быть не менее crypto_hash_sha256_BYTES (32 байта)
+unsigned hashAscii(const char *str) {
+    assert(str);
+    return XXH32(str, strlen(str), 0);
 }
 
 List **
@@ -173,9 +156,6 @@ ht_set (Hashtable *ht, const void *key)
 List *
 ht_lookup (Hashtable *ht, const void *key)
 {
-#ifdef DEBUG
-  assert (hashAscii ((char *)key) != -1);
-#endif
 
   const int i = hashAscii ((const char *)key) % ht->nbuckets;
   List *if_found = *wl_find ((const char *)key, &(ht->bucket[i].head));
@@ -207,9 +187,6 @@ ht_update (Hashtable *ht, const Ht_literal entry)
   assert (ht->nbuckets);
 #endif
 
-#ifdef DEBUG
-  assert (hashAscii ((const char *)entry.key) != -1);
-#endif
   const int i = hashAscii ((const char *)entry.key) % ht->nbuckets;
 
   List **found = wl_find ((char *)entry.key, &(ht->bucket[i].head));

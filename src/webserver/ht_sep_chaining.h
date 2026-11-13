@@ -2,12 +2,6 @@
 #define HT_SEP_CHAINING_H_
 /* hastable implementation with separate chaining (singly linked list) for hash
  * collisions */
-/*
- * хэш функция для хранения словаря уникальных слов в файле:
- * если слово это строка вида w[n],
- * то хеш этого слова будет: ((w[0] * (i + 1) + ... w[n-1] * (i + 1)) / n + 1)
- * % NBUCKETS
- */
 
 #include <stdio.h>
 
@@ -68,5 +62,5 @@ int ht_update (Hashtable *ht, const Ht_literal entry); // redundant maybe
 
 int ht_remove (Hashtable *ht, const void *key);
 
-int hashAscii (const char *str);
+unsigned hashAscii (const char *str);
 #endif

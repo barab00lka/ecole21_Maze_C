@@ -25,3 +25,10 @@ RUN apt update && apt install -y valgrind && \
 	rm -rf /var/lib/apt/lists
 
 CMD ["sh", "-c", "nginx -g 'daemon off;' & spawn-fcgi -n -p 8080 -- /usr/bin/valgrind --trace-children=yes --track-fds=yes --track-origins=yes --leak-check=full --show-leak-kinds=all --tool=memcheck -s ./usr/local/bin/backend.fcgi"]
+
+# deploy statically built backend in slim alpine container
+FROM alpine:latest AS minimal
+RUN apk --no-cache add spawn-fcgi
+
+COPY ./backend.fcgi /usr/local/bin/
+CMD ["sh", "-c", "spawn-fcgi -n -p 8080 ./usr/local/bin/backend.fcgi"]
